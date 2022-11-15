@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { UserRoles } from 'src/enums/userRoles';
 import { CreateUserDTO } from './dto/createUserDto';
+import { IncreaseBalanceDTO } from './dto/increaseBalanceDto';
 import { User, UserDocument } from './schemas/user.shema';
 
 @Injectable()
@@ -13,7 +15,7 @@ export class UsersService {
     const user = await this.userModel.findOne({ email });
 
     if (user) {
-      return 'user already exists';
+      return 'User already exists';
     }
 
     const createdUser = new this.userModel(RegisterDTO);
@@ -28,7 +30,22 @@ export class UsersService {
     return this.userModel.findOne({ email });
   }
 
+  async findById(id: number): Promise<User | undefined> {
+    return this.userModel.findOne({ _id: id });
+  }
+
   async findAll(): Promise<User[]> {
     return this.userModel.find().exec();
+  }
+
+  async increaseBalance(data: IncreaseBalanceDTO): Promise<User> {
+    const { amount, id } = data;
+
+    const user = await this.findById(id);
+
+    return this.userModel.findByIdAndUpdate(id, {
+      $inc: { balance: amount },
+      role: user.role === UserRoles.USER ? UserRoles.INVESTOR : user.role,
+    });
   }
 }
