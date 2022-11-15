@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Model } from 'mongoose';
 import { UserRoles } from 'src/enums/userRoles';
 import { CreateUserDTO } from './dto/createUserDto';
-import { IncreaseBalanceDTO } from './dto/increaseBalanceDto';
+import { UpdateBalanceDTO } from './dto/updateBalanceDto';
 import { User, UserDocument } from './schemas/user.shema';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class UsersService {
     const user = await this.userModel.findOne({ email });
 
     if (user) {
-      return 'User already exists';
+      throw new ConflictException('User already exists');
     }
 
     const createdUser = new this.userModel(RegisterDTO);
@@ -39,21 +39,36 @@ export class UsersService {
     return this.userModel.find().exec();
   }
 
-  async increaseBalance(data: IncreaseBalanceDTO): Promise<User> {
+  async increaseBalance(data: UpdateBalanceDTO): Promise<number> {
     const { amount, id } = data;
+    const user = await this.userModel.findById(id);
+    user.balance += amount;
+    user.role = user.role === UserRoles.USER ? UserRoles.INVESTOR : user.role;
 
-    const user = await this.findById(id);
+    await user.save();
 
-    return this.userModel.findByIdAndUpdate(id, {
-      $inc: { balance: amount },
-      role: user.role === UserRoles.USER ? UserRoles.INVESTOR : user.role,
-    });
+    return user.balance;
+  }
+
+  async decreaseBalance(data: UpdateBalanceDTO): Promise<number | string> {
+    const { amount, id } = data;
+    const user = await this.userModel.findById(id);
+
+    if (user.balance < amount) {
+      throw new ConflictException('No money to be funny');
+    }
+
+    user.balance -= amount;
+
+    await user.save();
+
+    return user.balance;
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async dailyPercent() {
     return await this.userModel.updateMany(
-      { role: UserRoles.INVESTOR },
+      { role: [UserRoles.INVESTOR, UserRoles.ADMIN] },
       { $mul: { balance: 1.01 } },
     );
   }
