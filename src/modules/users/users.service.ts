@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { Model } from 'mongoose';
 import { UserRoles } from 'src/enums/userRoles';
 import { CreateUserDTO } from './dto/createUserDto';
@@ -47,5 +48,13 @@ export class UsersService {
       $inc: { balance: amount },
       role: user.role === UserRoles.USER ? UserRoles.INVESTOR : user.role,
     });
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async dailyPercent() {
+    return await this.userModel.updateMany(
+      { role: UserRoles.INVESTOR },
+      { $mul: { balance: 1.01 } },
+    );
   }
 }
