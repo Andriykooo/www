@@ -1,6 +1,6 @@
 import { IsNumber } from 'class-validator';
 
-export class IncreaseBalanceDTO {
+export class UpdateBalanceDTO {
   @IsNumber()
   amount: number;
 
