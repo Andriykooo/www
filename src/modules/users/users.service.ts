@@ -31,10 +31,6 @@ export class UsersService {
     return this.userModel.findOne({ email });
   }
 
-  async findById(id: number): Promise<User | undefined> {
-    return this.userModel.findOne({ _id: id });
-  }
-
   async findAll(): Promise<User[]> {
     return this.userModel.find().exec();
   }
@@ -50,7 +46,7 @@ export class UsersService {
     return user.balance;
   }
 
-  async decreaseBalance(data: UpdateBalanceDTO): Promise<number | string> {
+  async decreaseBalance(data: UpdateBalanceDTO): Promise<number> {
     const { amount, id } = data;
     const user = await this.userModel.findById(id);
 
@@ -63,6 +59,29 @@ export class UsersService {
     await user.save();
 
     return user.balance;
+  }
+
+  async status(): Promise<any> {
+    const usersCount = await this.userModel.find().count();
+    const investorsCount = await this.userModel
+      .find({ role: UserRoles.INVESTOR })
+      .count();
+    const totalProfit = await this.userModel.aggregate([
+      {
+        $group: {
+          _id: 'totalProfit',
+          count: {
+            $sum: '$balance',
+          },
+        },
+      },
+    ]);
+
+    return {
+      totalUsers: usersCount,
+      totalInvestors: investorsCount,
+      totalProfit: totalProfit[0].count,
+    };
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)

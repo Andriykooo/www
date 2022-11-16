@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { CreateUserDTO } from './dto/createUserDto';
 import { UpdateBalanceDTO } from './dto/updateBalanceDto';
 import { UsersService } from './users.service';
@@ -20,5 +20,10 @@ export class UserController {
   @Patch('decrease-balance')
   async decreaseBalance(@Body() body: UpdateBalanceDTO) {
     return this.userService.decreaseBalance(body);
+  }
+
+  @Get('status')
+  async status() {
+    return this.userService.status();
   }
 }
