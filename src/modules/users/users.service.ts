@@ -11,7 +11,7 @@ import { User, UserDocument } from './schemas/user.shema';
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async create(RegisterDTO: CreateUserDTO) {
+  async create(RegisterDTO: CreateUserDTO, { id }) {
     const { email } = RegisterDTO;
     const user = await this.userModel.findOne({ email });
 
@@ -21,6 +21,10 @@ export class UsersService {
 
     const createdUser = new this.userModel(RegisterDTO);
     await createdUser.save();
+
+    const referalUser = await this.userModel.findById(id);
+    referalUser.invitedUsers.push(id);
+    await referalUser.save();
 
     const { password, ...userData } = createdUser;
 

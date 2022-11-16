@@ -7,6 +7,8 @@ export class CreateUserDTO {
   @IsString()
   role: string;
 
+  invitedUsers: string[];
+
   @IsNumber()
   balance: number;
 
