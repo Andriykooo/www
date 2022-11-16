@@ -1,15 +1,19 @@
-import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common';
 import { CreateUserDTO } from './dto/createUserDto';
+import { CreateUserQueryDTO } from './dto/createUserQueryDto';
 import { UpdateBalanceDTO } from './dto/updateBalanceDto';
 import { UsersService } from './users.service';
 
-@Controller('user')
+@Controller()
 export class UserController {
   constructor(private readonly userService: UsersService) {}
 
   @Post('sign-up')
-  async signUp(@Body() body: CreateUserDTO) {
-    return this.userService.create(body);
+  async signUp(
+    @Query() query: CreateUserQueryDTO,
+    @Body() body: CreateUserDTO,
+  ) {
+    return this.userService.create(body, query);
   }
 
   @Patch('increase-balance')

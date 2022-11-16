@@ -12,6 +12,9 @@ export class User {
   @Prop({ default: UserRoles.USER })
   role: string;
 
+  @Prop()
+  invitedUsers: string[];
+
   @Prop({ default: 0 })
   balance: number;
 
