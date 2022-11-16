@@ -23,8 +23,14 @@ export class UsersService {
     await createdUser.save();
 
     const referalUser = await this.userModel.findById(id);
-    referalUser.invitedUsers.push(id);
-    await referalUser.save();
+
+    if (
+      referalUser.role === UserRoles.ADMIN ||
+      referalUser.role === UserRoles.INVESTOR
+    ) {
+      referalUser.invitedUsers.push(createdUser._id.toString());
+      await referalUser.save();
+    }
 
     const { password, ...userData } = createdUser;
 
@@ -94,5 +100,30 @@ export class UsersService {
       { role: [UserRoles.INVESTOR, UserRoles.ADMIN] },
       { $mul: { balance: 1.01 } },
     );
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async dailyPercentFromInvitedUsers() {
+    const usersWithInvitations = await this.userModel.find({
+      invitedUsers: { $gt: [] },
+    });
+
+    usersWithInvitations.forEach(async (user) => {
+      const invitedUsersBalance = await Promise.all(
+        user.invitedUsers.map(async (invitedUser) => {
+          const invitedUserData = await this.userModel.findById(invitedUser);
+          return invitedUserData.balance;
+        }),
+      );
+
+      const userBonus =
+        invitedUsersBalance.reduce((accum, value) => {
+          return accum + value;
+        }, 0) * 0.1;
+
+      await this.userModel.findByIdAndUpdate(user._id.toString(), {
+        $inc: { balance: userBonus },
+      });
+    });
   }
 }
