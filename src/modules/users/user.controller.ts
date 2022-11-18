@@ -47,4 +47,11 @@ export class UserController {
   async status() {
     return this.userService.status();
   }
+
+  @Post('withdraw')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async withdraw() {
+    return this.userService.withdraw();
+  }
 }

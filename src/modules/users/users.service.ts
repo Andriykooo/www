@@ -37,9 +37,7 @@ export class UsersService {
       }
     }
 
-    const { password: userPassword, ...userData } = createdUser;
-
-    return userData;
+    return await this.userModel.findById(createdUser._id).select('-password');
   }
 
   async findOne(email: string): Promise<User | undefined> {
@@ -76,10 +74,14 @@ export class UsersService {
     return user.balance;
   }
 
-  async status(): Promise<any> {
+  async status(): Promise<{
+    totalUsers: number;
+    totalInvestors: number;
+    totalProfit: number;
+  }> {
     const usersCount = await this.userModel.find().count();
     const investorsCount = await this.userModel
-      .find({ role: Role.INVESTOR })
+      .find({ roles: Role.INVESTOR })
       .count();
     const totalProfit = await this.userModel.aggregate([
       {
@@ -99,10 +101,14 @@ export class UsersService {
     };
   }
 
+  async withdraw(): Promise<any> {
+    return `¯\_(ツ)_/¯`;
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async dailyPercent() {
     return await this.userModel.updateMany(
-      { role: [Role.INVESTOR, Role.ADMIN] },
+      { roles: Role.INVESTOR },
       { $mul: { balance: 1.01 } },
     );
   }
