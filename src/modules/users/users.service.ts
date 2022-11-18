@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import * as bcrypt from 'bcrypt';
 import { Model } from 'mongoose';
 import { UserRoles } from 'src/enums/userRoles';
 import { CreateUserDTO } from './dto/createUserDto';
@@ -12,14 +13,19 @@ export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async create(RegisterDTO: CreateUserDTO, { id }) {
-    const { email } = RegisterDTO;
+    const { password, email } = RegisterDTO;
     const user = await this.userModel.findOne({ email });
 
     if (user) {
       throw new ConflictException('User already exists');
     }
 
-    const createdUser = new this.userModel(RegisterDTO);
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const createdUser = new this.userModel({
+      ...RegisterDTO,
+      password: hashedPassword,
+    });
     await createdUser.save();
 
     const referalUser = await this.userModel.findById(id);
@@ -32,7 +38,7 @@ export class UsersService {
       await referalUser.save();
     }
 
-    const { password, ...userData } = createdUser;
+    const { password: userPassword, ...userData } = createdUser;
 
     return userData;
   }
