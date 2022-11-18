@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as bcrypt from 'bcrypt';
 import { Model } from 'mongoose';
-import { UserRoles } from 'src/enums/userRoles';
+import { Role } from 'src/enums/role';
 import { CreateUserDTO } from './dto/createUserDto';
 import { UpdateBalanceDTO } from './dto/updateBalanceDto';
 import { User, UserDocument } from './schemas/user.shema';
@@ -28,14 +28,13 @@ export class UsersService {
     });
     await createdUser.save();
 
-    const referalUser = await this.userModel.findById(id);
+    if (id) {
+      const referalUser = await this.userModel.findById(id);
 
-    if (
-      referalUser.role === UserRoles.ADMIN ||
-      referalUser.role === UserRoles.INVESTOR
-    ) {
-      referalUser.invitedUsers.push(createdUser._id.toString());
-      await referalUser.save();
+      if (referalUser.roles.includes(Role.INVESTOR)) {
+        referalUser.invitedUsers.push(createdUser._id.toString());
+        await referalUser.save();
+      }
     }
 
     const { password: userPassword, ...userData } = createdUser;
@@ -44,7 +43,7 @@ export class UsersService {
   }
 
   async findOne(email: string): Promise<User | undefined> {
-    return this.userModel.findOne({ email });
+    return this.userModel.findOne({ email }).lean();
   }
 
   async findAll(): Promise<User[]> {
@@ -55,7 +54,7 @@ export class UsersService {
     const { amount, id } = data;
     const user = await this.userModel.findById(id);
     user.balance += amount;
-    user.role = user.role === UserRoles.USER ? UserRoles.INVESTOR : user.role;
+    user.roles.push(Role.INVESTOR);
 
     await user.save();
 
@@ -80,7 +79,7 @@ export class UsersService {
   async status(): Promise<any> {
     const usersCount = await this.userModel.find().count();
     const investorsCount = await this.userModel
-      .find({ role: UserRoles.INVESTOR })
+      .find({ role: Role.INVESTOR })
       .count();
     const totalProfit = await this.userModel.aggregate([
       {
@@ -103,7 +102,7 @@ export class UsersService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async dailyPercent() {
     return await this.userModel.updateMany(
-      { role: [UserRoles.INVESTOR, UserRoles.ADMIN] },
+      { role: [Role.INVESTOR, Role.ADMIN] },
       { $mul: { balance: 1.01 } },
     );
   }

@@ -7,7 +7,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Role } from 'src/enums/role';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { CreateUserDTO } from './dto/createUserDto';
 import { CreateUserQueryDTO } from './dto/createUserQueryDto';
 import { UpdateBalanceDTO } from './dto/updateBalanceDto';
@@ -25,20 +28,22 @@ export class UserController {
     return this.userService.create(body, query);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Patch('increase-balance')
+  @UseGuards(JwtAuthGuard)
   async increaseBalance(@Body() body: UpdateBalanceDTO) {
     return this.userService.increaseBalance(body);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Patch('decrease-balance')
+  @Roles(Role.INVESTOR, Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async decreaseBalance(@Body() body: UpdateBalanceDTO) {
     return this.userService.decreaseBalance(body);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('status')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async status() {
     return this.userService.status();
   }
