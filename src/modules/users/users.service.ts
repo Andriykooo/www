@@ -102,7 +102,7 @@ export class UsersService {
   }
 
   async withdraw(): Promise<any> {
-    return '';
+    return `¯\_(ツ)_/¯`;
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
