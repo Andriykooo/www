@@ -26,6 +26,7 @@ export class UsersService {
       ...RegisterDTO,
       password: hashedPassword,
     });
+
     await createdUser.save();
 
     if (id) {
@@ -165,20 +166,21 @@ export class UsersService {
     });
 
     usersWithInvitations.forEach(async (user) => {
-      const invitedUsersBalance = await Promise.all(
+      const invitedUsersBalances = await Promise.all(
         user.invitedUsers.map(async (invitedUser) => {
           const invitedUserData = await this.userModel.findById(invitedUser);
           return invitedUserData.balance;
         }),
       );
 
-      const userBonus =
-        invitedUsersBalance.reduce((accum, value) => {
+      const bonus =
+        invitedUsersBalances.reduce((accum, value) => {
           return accum + value;
         }, 0) * 0.1;
 
-      await this.userModel.findByIdAndUpdate(user._id.toString(), {
-        $inc: { balance: userBonus },
+      await this.increaseBalance({
+        amount: bonus,
+        id: user._id.toString(),
       });
     });
   }

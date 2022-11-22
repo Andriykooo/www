@@ -5,5 +5,5 @@ export class UpdateBalanceDTO {
   amount: number;
 
   @IsNumber()
-  id: number;
+  id: string;
 }
