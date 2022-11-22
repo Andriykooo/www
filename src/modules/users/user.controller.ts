@@ -51,7 +51,7 @@ export class UserController {
   @Post('withdraw')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  async withdraw() {
-    return this.userService.withdraw();
+  async withdraw(@Body() body: UpdateBalanceDTO) {
+    return this.userService.withdraw(body);
   }
 }
