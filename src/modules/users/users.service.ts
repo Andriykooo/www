@@ -51,8 +51,11 @@ export class UsersService {
   async increaseBalance(data: UpdateBalanceDTO): Promise<number> {
     const { amount, id } = data;
     const user = await this.userModel.findById(id);
-    user.balance += amount;
-    user.roles.push(Role.INVESTOR);
+    user.balance += +amount;
+
+    if (!user.roles.includes(Role.INVESTOR)) {
+      user.roles.push(Role.INVESTOR);
+    }
 
     await user.save();
 
@@ -67,7 +70,7 @@ export class UsersService {
       throw new ConflictException('No money to be funny');
     }
 
-    user.balance -= amount;
+    user.balance -= +amount;
 
     await user.save();
 
@@ -101,8 +104,50 @@ export class UsersService {
     };
   }
 
-  async withdraw(): Promise<any> {
-    return `¯\_(ツ)_/¯`;
+  async withdraw(data: UpdateBalanceDTO): Promise<number> {
+    const { amount, id } = data;
+    const investors = await this.userModel.find({
+      roles: Role.INVESTOR,
+      _id: { $ne: id },
+    });
+
+    const availableBalance = investors.reduce((accum, investor) => {
+      return (accum += investor.balance);
+    }, 0);
+
+    if (availableBalance < amount) {
+      throw new ConflictException('No money to be funny');
+    }
+
+    let remainsToWithdraw = +amount;
+
+    for (let i = 0; i < investors.length; i++) {
+      if (remainsToWithdraw === 0) {
+        break;
+      }
+
+      const investor = investors[i];
+
+      if (remainsToWithdraw >= investor.balance) {
+        await this.decreaseBalance({
+          amount: investor.balance,
+          id: investor.id,
+        });
+
+        remainsToWithdraw -= investor.balance;
+      }
+
+      if (remainsToWithdraw < investor.balance) {
+        await this.decreaseBalance({
+          amount: remainsToWithdraw,
+          id: investor.id,
+        });
+
+        remainsToWithdraw = 0;
+      }
+    }
+
+    return await this.increaseBalance(data);
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
