@@ -151,9 +151,7 @@ export class UsersService {
     return await this.increaseBalance(data);
   }
 
-  //EVERY_DAY_AT_MIDNIGHT
-
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async dailyPercent() {
     const users = await this.userModel.find({ roles: Role.INVESTOR });
 
