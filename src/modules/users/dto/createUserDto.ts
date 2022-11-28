@@ -1,4 +1,11 @@
-import { IsArray, IsEmail, IsNumber, IsString, Length } from 'class-validator';
+import {
+  IsArray,
+  IsDate,
+  IsEmail,
+  IsNumber,
+  IsString,
+  Length,
+} from 'class-validator';
 import { Role } from 'src/enums/role';
 
 export class CreateUserDTO {
@@ -15,6 +22,12 @@ export class CreateUserDTO {
 
   @IsNumber()
   balance: number;
+
+  @IsNumber()
+  earnings: number;
+
+  @IsDate()
+  createdAt: Date;
 
   @Length(1)
   password: string;

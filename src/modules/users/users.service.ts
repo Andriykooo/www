@@ -26,6 +26,7 @@ export class UsersService {
       ...RegisterDTO,
       password: hashedPassword,
     });
+
     await createdUser.save();
 
     if (id) {
@@ -152,34 +153,43 @@ export class UsersService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async dailyPercent() {
-    return await this.userModel.updateMany(
-      { roles: Role.INVESTOR },
-      { $mul: { balance: 1.01 } },
-    );
-  }
+    const users = await this.userModel.find({ roles: Role.INVESTOR });
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async dailyPercentFromInvitedUsers() {
+    await Promise.all(
+      users.map(async (user) => {
+        const dailyPercent = +(user.balance * 0.01).toFixed(2);
+
+        await this.userModel.findByIdAndUpdate(user._id.toString(), {
+          balance: user.balance + dailyPercent,
+          earnings: dailyPercent,
+        });
+      }),
+    );
+
     const usersWithInvitations = await this.userModel.find({
       invitedUsers: { $gt: [] },
+      roles: Role.INVESTOR,
     });
 
     usersWithInvitations.forEach(async (user) => {
-      const invitedUsersBalance = await Promise.all(
+      const invitedUsersEarnings = await Promise.all(
         user.invitedUsers.map(async (invitedUser) => {
           const invitedUserData = await this.userModel.findById(invitedUser);
-          return invitedUserData.balance;
+          return invitedUserData.earnings;
         }),
       );
 
-      const userBonus =
-        invitedUsersBalance.reduce((accum, value) => {
+      const bonus =
+        invitedUsersEarnings.reduce((accum, value) => {
           return accum + value;
         }, 0) * 0.1;
 
       await this.userModel.findByIdAndUpdate(user._id.toString(), {
-        $inc: { balance: userBonus },
+        balance: user.balance + bonus,
+        earnings: user.earnings + bonus,
       });
     });
+
+    await this.userModel.updateMany({}, { $set: { earnings: 0 } });
   }
 }
